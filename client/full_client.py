@@ -1,14 +1,4 @@
-import json
-import os
-import platform
-import queue
-import shutil
-import signal
-import socket
-import hashlib
-import threading
-import time
-import sys
+import json, os ,platform, queue, shutil, socket,hashlib, threading, time, sys
 from pathlib import Path
 from threading import Thread
 from uuid import getnode as get_mac
@@ -46,19 +36,15 @@ def delete_destroyed_files():
 
 
 def receive_data(object_path, filesize, receive_socket, change_timestamp):
-    key = 0
-    key = int(receive_socket.recv(160).decode("utf-8"))
+    received_bytes = 0
     fd = open(object_path, "rb+")
-    while key >= 0:
-        receive_socket.send(bytes("ok", "utf-8"))
+    while filesize > received_bytes:
         to_write = receive_socket.recv(1024)
         print(to_write)
-        fd.seek(int(key), 0)
+        fd.seek(received_bytes, 0)
         wrote = fd.write(to_write)
         receive_socket.send(bytes("ok", "utf-8"))
-        key = int(receive_socket.recv(160).decode("utf-8"))
-        print(key)
-
+        received_bytes += len(to_write)
     fd.truncate(filesize)
     fd.close()
     created_timestamp = os.stat(object_path).st_atime
@@ -221,19 +207,25 @@ def update_server(s):
             for file in files:
                 dev_path = devices_path(path + "/" + file)
                 db_path = linux_path(path + "/" + file)
-                if clients_db.select_object(db_path) is None:
+                db_latest_update = clients_db.get_latest_update(db_path)
+                if db_latest_update is None:
                     objects_update = os.path.getmtime(dev_path)
                     objects_size = os.path.getsize(dev_path)
                     new_update = {"action": 1, "path": db_path, "type": 0, "latest_update": objects_update,
                                   "size": objects_size}
                     send_message(s, new_update)
-                elif clients_db.get_latest_update(db_path) != os.path.getmtime(dev_path):
-                    objects_update = os.path.getmtime(dev_path)
-                    objects_size = Path(dev_path).stat().st_size
-                    old_latest_update = clients_db.get_latest_update(db_path)
-                    new_update = {"action": 2, "path": db_path, "latest_update": objects_update,
-                                  "old_latest_update": old_latest_update, "size": objects_size}
-                    send_message(s, new_update)
+
+                elif db_latest_update != os.path.getmtime(dev_path):
+                    if db_latest_update > os.path.getmtime(dev_path):
+                        created_timestamp = os.stat(dev_path).st_atime
+                        os.utime(dev_path, (created_timestamp, db_latest_update))
+                    else:
+                        objects_update = os.path.getmtime(dev_path)
+                        objects_size = Path(dev_path).stat().st_size
+                        old_latest_update = clients_db.get_latest_update(db_path)
+                        new_update = {"action": 2, "path": db_path, "latest_update": objects_update,
+                                    "old_latest_update": old_latest_update, "size": objects_size}
+                        send_message(s, new_update)
     new_update = {"action": 5}
     print("i send all the modifieds and creates")
     send_message(s, new_update)
@@ -272,7 +264,7 @@ def send_message(s, new_update):
         elif new_update["action"] == 3:
             clients_db.rename_object(new_update["old_path"], new_update["new_path"])
     elif servers_response == "send bytes":
-        send_all_bytes(new_update["path"], s)
+        send_all_bytes(new_update["path"], s, new_update["latest_update"])
         servers_response = s.recv(1024).decode("utf-8")
         if servers_response == "completed":
             print("bytes send completed")
@@ -294,23 +286,20 @@ def send_message(s, new_update):
         send_message(s, new_update)
 
 
-def send_all_bytes(db_path, servers_socket):
+def send_all_bytes(db_path, servers_socket, latest_update):
     object_path = devices_path(db_path)
     fd = open(object_path, "rb")
-    key = 0
     file_bytes = fd.read(1024)
     file_list = list(file_bytes)
     while len(file_list) > 0:
-        # print(key)
-        servers_socket.send(bytes(str(key), "utf-8"))
-        response = servers_socket.recv(1024)
         servers_socket.send(file_bytes)
         response = servers_socket.recv(1024)
         file_bytes = fd.read(1024)
         file_list = list(file_bytes)
-        key += 1024
-    key = -1
-    servers_socket.send(bytes(str(key), "utf-8"))
+    fd.close()
+    #created_timestamp = os.stat(object_path).st_atime
+    #os.utime(object_path, (created_timestamp, latest_update))
+
 
 
 def send_updates():
@@ -354,8 +343,7 @@ class Event(FileSystemEventHandler):
         path = event.src_path
         db_path = linux_path(path)
         print("created ", path)
-        if clients_db.select_object(
-                db_path) is not None:  # or clients_db.get_latest_update(db_path) == -1 or clients_db.get_latest_update(db_path) == os.path.getmtime(event.src_path):
+        if clients_db.select_object(db_path) is not None: 
             print("watchdog:ignore, server did it ", path)
             return
         objects_update = os.path.getmtime(event.src_path)
@@ -375,12 +363,16 @@ class Event(FileSystemEventHandler):
             return
         path = event.src_path
         db_path = linux_path(path)
+        db_latest_update = clients_db.get_latest_update(db_path)
 
-        if clients_db.select_object(db_path) is None or clients_db.get_latest_update(
-                db_path) == -1 or clients_db.get_latest_update(db_path) == os.path.getmtime(event.src_path):
+        if db_latest_update is None or db_latest_update == -1 or db_latest_update == os.path.getmtime(event.src_path):
             print("watchdog 2:ignore, server did it ", db_path)
             return
         object_update = os.path.getmtime(event.src_path)
+        if db_latest_update > object_update:
+            created_timestamp = os.stat(event.src_path).st_atime
+            os.utime(event.src_path, (created_timestamp, db_latest_update))
+            return         
         objects_size = os.path.getsize(path)
         old_latest_update = clients_db.get_latest_update(db_path)
         new_update = {"action": 2, "path": db_path, "latest_update": object_update,
@@ -425,7 +417,7 @@ class SampleApp(Tk):
         Tk.__init__(self, *args, **kwargs)
 
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
-        self.title("Novbox")
+        self.title("Flsync")
         self.geometry("400x350")
 
         # the container is where we'll stack a bunch of frames
@@ -469,7 +461,7 @@ class StartPage(Frame):
         Frame.__init__(self, parent)
 
         self.controller = controller
-        label = Label(self, text="Welcome to Novbox", font=controller.title_font)
+        label = Label(self, text="Welcome to Flsync", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         button1 = Button(self, text="Login", width=10, height=1,
                          command=lambda: controller.show_frame("Login"))
@@ -483,13 +475,13 @@ class StartPage(Frame):
     # self.configure(background='blue')
 
 
-def authentication_user(action, username_info, password_info):
+def authentication_user(action, username_info, password_info, email_info):
     global username, mac, users_pass
     s = socket.socket()
     s.connect(('212.71.250.55', 8001))
     if action == "r":
         encoded_password = hashlib.md5(password_info.encode()).hexdigest()
-        information = {"action": action, "username": username_info, "password": encoded_password, "mac": mac}
+        information = {"action": action, "username": username_info, "password": encoded_password, "email":email_info,"mac": mac}
         s.send(bytes(json.dumps(information), "utf-8"))
         response = s.recv(1024).decode("utf-8")
         s.close()
@@ -514,7 +506,6 @@ def authentication_user(action, username_info, password_info):
 
 
 class Login(Frame):
-    global username
 
     def __init__(self, parent, controller):
         self.error_message = StringVar()
@@ -550,7 +541,7 @@ class Login(Frame):
         username_info = self.login_username.get()
         password_info = self.login_password.get()
         print(username_info, " ", password_info)
-        check_cred = authentication_user("l", username_info, password_info)
+        check_cred = authentication_user("l", username_info, password_info, "")
         if check_cred == "username not exists":
             self.login_username_entry.delete(0, END)
         elif check_cred == "ok":
@@ -576,6 +567,7 @@ class Register(Frame):
 
         self.register_username = StringVar()
         self.register_password = StringVar()
+        self.register_email = StringVar()
 
         Label(self, text="Please enter details below").pack()
         Label(self, text="").pack()
@@ -585,6 +577,9 @@ class Register(Frame):
         Label(self, text="Password * ").pack()
         self.register_password_entry = Entry(self, textvariable=self.register_password, show="*")
         self.register_password_entry.pack()
+        Label(self, text="Email * ").pack()
+        self.register_email_entry = Entry(self, textvariable=self.register_email)
+        self.register_email_entry.pack()
         Label(self, text="").pack()
         self.register_button = Button(self, text="Register", width=10, height=1, command=self.register_user)
         self.register_button.pack()
@@ -594,15 +589,21 @@ class Register(Frame):
         self.register_password_entry.bind('<Return>', lambda e: self.register_button.invoke())
 
     def register_user(self):
+        global username
         username_info = self.register_username.get()
         password_info = self.register_password.get()
-        self.register_username_entry.delete(0, END)
-        self.register_password_entry.delete(0, END)
-        check_cred = authentication_user("r", username_info, password_info)
-        if check_cred == "ok":
-            self.controller.create_frame("Home")
-
-        self.error_message.set(check_cred)
+        email_info = self.register_email.get()
+        if username_info == "" or password_info == "" or email_info == "":
+            self.error_message.set("complete all the entries")
+        else:    
+            self.register_email_entry.delete(0, END)
+            self.register_username_entry.delete(0, END)
+            self.register_password_entry.delete(0, END)
+            check_cred = authentication_user("r", username_info, password_info, email_info)
+            if check_cred == "ok":
+                username = username_info
+                self.controller.create_frame("Home")
+            self.error_message.set(check_cred)
 
 
 class Home(Frame):
@@ -636,6 +637,8 @@ class Home(Frame):
         send_updates_thread.start()
         send_updates_sem = threading.Semaphore()
         send_deletes_sem = threading.Semaphore()
+
+        self.message.set("Υou are logged in")
 
         send_updates_sem.acquire()
         send_deletes_sem.acquire()

@@ -1,16 +1,8 @@
-import json
-import os
-import queue
-import shutil
-import socket
-import string
-import threading
-import time
+import json, os, queue, shutil, socket, string, threading, time, random
 from pathlib import Path
 import servers_db
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
-import random
 
 devices = {}
 send_updates_deletes = {}
@@ -30,12 +22,13 @@ def authentication_user(client_socket):
             print(new_message)
             action, username, password, mac = new_message["action"], new_message["username"], new_message["password"], new_message["mac"]
             if action == "r":
+                email = new_message['email']
                 if servers_db.user_exists(db, username):
                     client_socket.send(bytes("username exists", "utf-8"))
                 else:
                     Path(username).mkdir(parents=True, exist_ok=True)
                     os.chmod(username, 0o777)
-                    servers_db.insert_user(db, username, password)
+                    servers_db.insert_user(db, username, password, email)
                     if mac != 1:
                         conn_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=524))
                         connections_pass[username, mac] = conn_pass
@@ -79,23 +72,22 @@ def receive_data(object_path, filesize, receive_socket):
         temp_object_path = "temp/" + object_path
         create_temp_parents(temp_object_path)
         open(temp_object_path, "w")
-        key = 0
-        key = int(receive_socket.recv(160).decode("utf-8"))
+        received_bytes = 0
         fd = open(temp_object_path, "rb+")
-        while key >= 0:
-            receive_socket.send(bytes("ok", "utf-8"))
+        while filesize > received_bytes:
             to_write = receive_socket.recv(1024)
-            fd.seek(int(key), 0)
+            fd.seek(int(received_bytes), 0)
             wrote = fd.write(to_write)
             receive_socket.send(bytes("ok", "utf-8"))
-            key = int(receive_socket.recv(160).decode("utf-8"))
-
+            received_bytes += len(to_write)
+            
         fd.truncate(filesize)
         fd.close()
         if Path(object_path).exists():
             os.remove(object_path)
         parent, child = object_path.rsplit("/", 1)
         shutil.move(temp_object_path, parent)
+        print("file upload ok")
         return True
     except:
         print("Error to receive file")
@@ -144,6 +136,7 @@ def receive_updates(client_socket):
         devices[username, mac] = queue.Queue()
         send_updates_deletes[username, mac] = threading.Semaphore()
         send_updates_deletes[username, mac].acquire()
+    print("receive from this device ok")
     client_socket.send(bytes("completed", "utf-8"))
     while 1:
         try:
@@ -288,21 +281,14 @@ def update_device(db, username, mac, client_socket, devices_timestamp):
 def send_all_bytes(object_path, clients_socket):
     try:
         fd = open(object_path, "rb")
-        key = 0
         file_bytes = fd.read(1024)
         file_list = list(file_bytes)
         while len(file_list) > 0:
-            print(key)
-            clients_socket.send(bytes(str(key), "utf-8"))
-            response = clients_socket.recv(1024)
             clients_socket.send(file_bytes)
             response = clients_socket.recv(1024)
             file_bytes = fd.read(1024)
             file_list = list(file_bytes)
-            key += 1024
-        key = -1
         fd.close()
-        clients_socket.send(bytes(str(key), "utf-8"))
         return True
     except:
         print("file's sending except")

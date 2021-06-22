@@ -21,7 +21,7 @@ def close_connection(db):
 
 def create_tables(db):
     dbcursor = db.cursor()
-    dbcursor.execute("""CREATE table IF NOT EXISTS Users(username VARCHAR(30) PRIMARY KEY, password TEXT);""")
+    dbcursor.execute("""CREATE table IF NOT EXISTS Users(username VARCHAR(30) PRIMARY KEY, password TEXT, email TEXT);""")
     dbcursor.execute("""CREATE table IF NOT EXISTS Objects(path VARCHAR(250),user VARCHAR(30),
     mac VARCHAR(30), 
     latest_update double, timestamp double, objects_type int , status int, objects_size int, new_path VARCHAR(250), 
@@ -32,13 +32,23 @@ def create_tables(db):
     db.commit()
 
 
-def insert_user(db, username, password):
+def insert_user(db, username, password, email):
     dbcursor = db.cursor()
-    sql_query = """INSERT INTO Users(username, password) VALUES(%s,%s)"""
-    dbcursor.execute(sql_query, (username, password))
+    sql_query = """INSERT INTO Users(username, password, email) VALUES(%s,%s,%s)"""
+    dbcursor.execute(sql_query, (username, password, email))
     dbcursor.close()
     db.commit()
 
+def get_email(db, username):
+    dbcursor = db.cursor()
+    sql_query = """SELECT email FROM Users WHERE username = '%s' """ % username
+    dbcursor.execute(sql_query)
+    email = dbcursor.fetchone()
+    dbcursor.close()
+    if email is None:
+        return None
+    return email[0]
+    
 
 def login_user(db, username, password):
     dbcursor = db.cursor()
@@ -70,6 +80,14 @@ def user_exists(db, username):
         return False
     print("exists")
     return True
+
+
+def update_password(db, username, password):
+    dbcursor = db.cursor()
+    sql_query= """UPDATE Users SET password = '%s' WHERE username = '%s'""" % (password, username)
+    dbcursor.execute(sql_query)
+    dbcursor.close()
+    db.commit()
 
 
 def insert_device(db, username, mac, timestamp):

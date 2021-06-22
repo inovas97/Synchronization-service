@@ -1,0 +1,46 @@
+sudo if i am not root
+apt update && apt udgrade
+
+#rename hostname
+hostnamectl set-hostname flsyc-server
+nano /etc/hosts ==> add 212.71.250.55 flsync-server
+
+#firewall
+apt install ufw
+ufw default allow outcoming
+ufw default deny incoming
+ufw allow ssh
+#for flask server
+ufw allow 5000
+#to open ports for sockets
+ufw allow 8001:8005
+ufw enable
+ufw status //to check all is ok
+
+#for mysql
+apt-get update
+apt-get install mysql-server
+mysql -u root -p #to open a mysql terminal
+mysql> CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';
+mysql> GRANT ALL_PRIVILEGES ON *.* TO 'username'@'locahost';
+mysql> quit 
+
+#for python
+apt install python3-pip
+apt install python3-venv
+
+#create and run venv
+python3 -m venv server/servers_venv
+source servers_venv/bin/activate
+
+#for mysql-connector
+pip install mysql-connector-python
+
+#to get the libraries that i need and save that in req.txt
+pip freeze > req.txt
+
+#to install from req.txt file
+pip install -r req.txt 
+
+#to install python-tk 
+apt-get install python-tk (restart after)

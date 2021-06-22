@@ -9,8 +9,8 @@ sys.path.insert(0, "/var/www/webApp/webApp/")
 import os
 import zipfile
 from io import BytesIO
-from flask import Flask, render_template, flash, redirect, url_for, session, send_file, request, make_response,send_from_directory
-from forms import LoginForm, UploadFileForm
+from flask import Flask, render_template, flash, redirect, url_for, session, send_file, request, jsonify
+from forms import LoginForm, UploadFileForm, ResetRequestForm
 from werkzeug.utils import secure_filename
 import json
 from flask_dropzone import Dropzone
@@ -19,8 +19,21 @@ import unicodedata
 from werkzeug.urls import url_quote
 from shutil import copyfile
 
+import jwt
+import datetime
+from functools import wraps
+from flask_mail import Message, Mail
 import servers_db
+
+
 app = Flask(__name__)
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'tocasheri@gmail.com'
+app.config['MAIL_PASSWORD'] = '6980263685'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 
 dropzone = Dropzone(app)
 
@@ -136,6 +149,8 @@ def login():
         if response == "ok":
             session['username'] = username
             upload_form = UploadFileForm()
+            #token = jwt.encode({"user": username, "exp": datetime.datetime.utcnow()+datetime.timedelta(seconds=30)}, app.config['SECRET_KEY'])
+            #return jsonify({'token ': token.decode('utf-8')})
             return redirect(url_for('home', folder=username, upload_form=upload_form))
         else:
             flash('ERROR: '+response, 'error')
@@ -147,6 +162,54 @@ def login():
 def logout():
     session.pop("username", None)
     return redirect('login')
+
+def send_reset_email(token, username):
+    try :
+        msg = Message('Password Reset Request',
+                    sender='tocasheri@gmail.com',
+                    recipients=['novasgiannis97@gmail.com'])
+        msg.body = f'''To reset your password, visit the following link:
+        If you did not make this request then simply ignore this email and no changes will be made.
+        '''
+        mail.send(msg)
+    except:
+        return "ERROR"
+
+@app.route('/reset_request',  methods=['GET', 'POST'])
+def reset_request():
+    form = ResetRequestForm()
+    if form.validate_on_submit():
+        #username = session["username"]
+        username = "novas"
+        token = jwt.encode({"user": username, "exp": datetime.datetime.utcnow()+datetime.timedelta(seconds=30)}, app.config['SECRET_KEY'])
+        msg = Message('Password Reset Request',sender='tocasheri@gmail.com',recipients=["novasgiannis97@gmail.com"])
+        msg.body = f'''To reset your password, visit the following link:
+        If you did not make this request then simply ignore this email and no changes will be made.
+        '''
+        mail.send(msg)
+        flash('An email has been sent with instructions to reset your password.', 'info')
+        return redirect('login')
+    return render_template('reset_request.html', form=form)
+
+def token_requiment(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.args.get('token')
+        if not token:
+            return jsonify({'message':'Token is missing'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/reset_password')
+@token_requiment
+def reset_password():
+    try:
+        token = request.args.get('token')
+        data = jwt.decode(token, app.config['SECRET_KEY'])
+    except:
+        return jsonify({"message":"Token is invalid"}), 403
+    
 
 
 if __name__ == '__main__':

@@ -1,0 +1,54 @@
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Flsync-Home</title>
+    <link href="{{ url_for('static',filename='css/home_style.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    {{ dropzone.load_css() }}
+    {{ dropzone.style('border: 2px dashed #0087F7; width: 20%') }}
+</head>
+<body>
+
+<div class="header-div">
+    <h3>Flsync</h3>
+    <p id="user_para">Welcome to Flsync</p>
+</div>
+<a class="logout_link" href="/logout">
+        <button class="logout_button">Logout</button>
+</a>
+<div class="parent_folder_header">
+    <a class="download-link" href="{{ url_for('zipped_data', folder=folder_path) }}">
+    <button class="btn"><i class="fa fa-download"></i></button>
+    </a>
+    <h1 class="parent_folder">/{{ folder_path }}</h1>
+    {{ dropzone.create(action=url_for("home",folder=folder_path)) }}
+    {{ dropzone.load_js() }}
+    {{ dropzone.config(custom_init="dz = this;dz.on('success', function() {setTimeout(function () {dz.removeFile(dz.files[0])},3000);});") }}
+</div>
+<ul>
+{% for folder in folders %}
+    {% if folder %}
+        <li class="folder_image">
+        <a class="folder_button"  href="{{ url_for('home',folder=folder_path+'/'+folder, upload_form = upload_form) }}">
+            <img src="{{ url_for('static',filename='images/folder_image.png') }}">
+        </a>
+            <div class="object_name">{{ folder }}</div>
+        </li>
+    {% endif %}
+{% endfor %}
+{% for file in files %}
+    {% if file %}
+        <li class="file_image">
+            <a class="file_button" href="{{ url_for('download',filename=folder_path+'/'+file) }}">
+                <img class="file_image" src="{{ url_for('static',filename='images/file_image.png') }}">
+            </a>
+            <div class="object_name">{{ file }}</div>
+        </li>
+    {% endif %}
+{% endfor %}
+</ul>
+</body>
+</html>
+{% endblock content %}

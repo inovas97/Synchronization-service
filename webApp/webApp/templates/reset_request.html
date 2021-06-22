@@ -1,0 +1,32 @@
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Novbox</title>
+  <link href="{{ url_for('static',filename='css/login_style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="main-div">
+        <form method="post" action="">
+            <h1>Reset Password</h1>
+          {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.email(class="form-control form-control-lg" ,placeholder="Email...") }}
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                  {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">
+                      {{ message }}
+                  </div>
+                  {% endfor %}
+              {% endif %}
+              {% endwith %}
+              <div class="form-group">
+                  {{ form.submit }}
+              </div>
+        </form>
+    </div>
+</body>
+</html>
+{% endblock content %}
