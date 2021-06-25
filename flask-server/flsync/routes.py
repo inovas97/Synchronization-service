@@ -1,6 +1,6 @@
 from flsync import app, mail
-from flask import render_template, flash, session, redirect, send_file, request, jsonify, url_for
-from flsync.forms import LoginForm, UploadFileForm, ResetRequestForm, ResetPasswordForm
+from flask import render_template, flash, session, redirect, send_file, request, jsonify, url_for, send_from_directory
+from flsync.forms import LoginForm, UploadFileForm, ResetRequestForm, ResetPasswordForm, RegisterForm
 from flask_mail import Message
 from pathlib import Path
 import os, socket, zipfile, hashlib, json, jwt, datetime
@@ -17,6 +17,10 @@ def check_parent_exist(path):
         Path(parent).mkdir(True, True)
         os.chmod(parent, 0o777)
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/home')
 @app.route('/home?<path:folder>', methods=["GET", "POST"])
@@ -127,6 +131,35 @@ def login():
             flash('ERROR: '+response, 'error')
 
     return render_template('login.html', form=form)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if 'username' in session.keys():
+        upload_form = UploadFileForm()
+        username = session['username']
+        return redirect(url_for('home', folder=username, upload_form=upload_form))
+    s = socket.socket()
+    s.connect(('212.71.250.55', 8001))
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        email = form.email.data
+        encoded_password = hashlib.md5(password.encode()).hexdigest()
+        information = {"action": "r", "username": username, "password": encoded_password,"email": email, "mac": 1}
+        s.send(bytes(json.dumps(information), "utf-8"))
+        response = s.recv(1024).decode("utf-8")
+        if response == "ok":
+            session['username'] = username
+            upload_form = UploadFileForm()
+            #token = jwt.encode({"user": username, "exp": datetime.datetime.utcnow()+datetime.timedelta(seconds=30)}, app.config['SECRET_KEY'])
+            #return jsonify({'token ': token.decode('utf-8')})
+            return redirect(url_for('home', folder=username, upload_form=upload_form))
+        else:
+            flash('ERROR: '+response, 'error')
+
+    return render_template('register.html', form=form)
 
 
 @app.route('/logout')

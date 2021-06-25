@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Flsync | Login</title>
+  <title>Flsync | Register</title>
   <link href="{{ url_for('static',filename='css/login_style.css') }}" rel="stylesheet">
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
@@ -12,10 +12,10 @@
             <img src="{{ url_for('static',filename='images/icon.png')}}"/>
             <h3>Flsync is the best way to 
                 keep all your files securely stored, up to date, and accessible from any device.</h3>
-            <h3>You can download the Desktop application right now! Just <a href="#">click here!</a></h3>
+            <h3>You can download the Desktop application right now! Just <a href="#">click here</a></h3>
         </div>  
         <div class="login-div">
-            <h3>Login to flsync</h3>
+            <h3>Register to flsync</h3>
             <h5>now you can view, edit, upload and download your files online! Just log in..</h5>
             <form method="post" action="">
                 {{ form.hidden_tag() }}
@@ -24,6 +24,12 @@
                 </div>
                 <div class="form-group">
                     {{ form.password(class="form-control form-control-lg" ,placeholder="Password...") }}
+                </div>
+                <div class="form-group">
+                    {% for error in form.email.errors %}
+                        <h6 class="email-error">{{error}}</h6> 
+                    {% endfor %}
+                    {{ form.email(class="form-control form-control-lg" ,placeholder="Email...")}}
                 </div>
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -43,8 +49,8 @@
                         <a href="/reset_request">click here</a> to reset it!
                     </small>
                     <small>
-                        if you do not have an account
-                        <a href="/register">click here</a> to register!
+                        if you have an account
+                        <a href="/login">click here</a> to login!
                     </small>
                 </div>
             </form>

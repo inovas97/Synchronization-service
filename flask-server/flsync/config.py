@@ -6,4 +6,4 @@ class Config:
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
     MAIL_USERNAME = 'tocasheri@gmail.com'
-    MAIL_PASSWORD = '6980263685'
+    MAIL_PASSWORD = 'axcwfxxpalkrtgan'
