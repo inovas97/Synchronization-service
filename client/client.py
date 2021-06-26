@@ -419,7 +419,10 @@ class SampleApp(Tk):
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
         self.title("Flsync")
         self.geometry("400x350")
-
+        p1 = PhotoImage(file = 'icon.png')
+        self.iconphoto(False, p1)
+ 
+        
         # the container is where we'll stack a bunch of frames
         # on top of each other, then the one we want visible
         # will be raised above the others
@@ -455,24 +458,24 @@ class SampleApp(Tk):
         frame.grid(row=0, column=0, sticky="nsew")
         frame.tkraise()
 
-
 class StartPage(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
 
         self.controller = controller
-        label = Label(self, text="Welcome to Flsync", font=controller.title_font)
-        label.pack(side="top", fill="x", pady=10)
-        button1 = Button(self, text="Login", width=10, height=1,
+        label = Label(self, text="Welcome to Flsync",bg="black", fg="white" , font=controller.title_font)
+        label.pack(side="top", fill="x", pady=50)
+        button1 = Button(self, text="Login", width=10, height=1,bg='black', fg="white",
+                        
                          command=lambda: controller.show_frame("Login"))
-        button2 = Button(self, text="Register", width=10, height=1,
+        button2 = Button(self, text="Register", width=10, height=1,bg='black', fg="white",
                          command=lambda: controller.show_frame("Register"))
         button1.pack()
         button2.pack()
         for thread in threading.enumerate():
             print(thread.name)
             print(thread.is_alive())
-    # self.configure(background='blue')
+        self.configure(background='black')
 
 
 def authentication_user(action, username_info, password_info, email_info):
@@ -511,28 +514,28 @@ class Login(Frame):
         self.error_message = StringVar()
         Frame.__init__(self, parent)
         self.controller = controller
-        self.photo = PhotoImage(file="prev.png")
-        self.photo = self.photo.subsample(25, 25)
-        button = Button(self, image=self.photo,
-                        command=lambda: controller.show_frame("StartPage"))
+        self.configure(background='black')
+        
+        button = Button(self, font=("Arial",12),
+                        text="<" ,bg="black", fg="white",command=lambda: controller.show_frame("StartPage"))
         button.pack(side="top", anchor="nw")
-        label = Label(self, text="Login", font=controller.title_font)
+        label = Label(self, text="Login", bg="black", fg="white",font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
         self.login_username = StringVar()
         self.login_password = StringVar()
-        Label(self, text="Please enter details below").pack()
-        Label(self, text="").pack()
-        Label(self, text="Username * ").pack()
+        Label(self, text="Please enter details below", bg="black", fg="white").pack()
+        Label(self, text="",bg="black").pack()
+        Label(self, text="Username * ", bg="black", fg="white").pack()
         self.login_username_entry = Entry(self, textvariable=self.login_username)
         self.login_username_entry.pack()
-        Label(self, text="Password * ").pack()
+        Label(self, text="Password * ", bg="black", fg="white").pack()
         self.login_password_entry = Entry(self, textvariable=self.login_password, show="*")
         self.login_password_entry.pack()
-        Label(self, text="").pack()
-        self.login_button = Button(self, text="Login", width=10, height=1,
+        Label(self, text="",bg="black").pack()
+        self.login_button = Button(self, text="Login", width=10, height=1, bg="black", fg="white",
                                    command=self.login_user)
         self.login_button.pack()
-        Label(self, textvariable=self.error_message, fg="red", font=("calibri", 11)).pack()
+        Label(self, textvariable=self.error_message,bg="black", fg="red", font=("calibri", 11)).pack()
         self.login_username_entry.bind('<Return>', lambda e: self.login_password_entry.focus_set())
         self.login_password_entry.bind('<Return>', lambda e: self.login_button.invoke())
 
@@ -557,34 +560,35 @@ class Register(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
-        self.photo = PhotoImage(file="prev.png")
-        self.photo = self.photo.subsample(25, 25)
-        button = Button(self, image=self.photo,
+        self.configure(background='black')
+        
+        button = Button(self,  font=("Arial",12),
+                        text="<" ,bg="black", fg="white",
                         command=lambda: controller.show_frame("StartPage"))
         button.pack(side="top", anchor="nw")
-        label = Label(self, text="Register", font=controller.title_font)
+        label = Label(self, text="Register",bg="black", fg="white", font=controller.title_font)
         label.pack(side="top", fill="x", pady=10)
 
         self.register_username = StringVar()
         self.register_password = StringVar()
         self.register_email = StringVar()
 
-        Label(self, text="Please enter details below").pack()
-        Label(self, text="").pack()
-        Label(self, text="Username * ").pack()
+        Label(self, text="Please enter details below",bg="black", fg="white",).pack()
+        Label(self, text="",bg="black").pack()
+        Label(self, text="Username * ",bg="black", fg="white").pack()
         self.register_username_entry = Entry(self, textvariable=self.register_username)
         self.register_username_entry.pack()
-        Label(self, text="Password * ").pack()
+        Label(self, text="Password * ",bg="black", fg="white").pack()
         self.register_password_entry = Entry(self, textvariable=self.register_password, show="*")
         self.register_password_entry.pack()
-        Label(self, text="Email * ").pack()
+        Label(self, text="Email * ",bg="black", fg="white").pack()
         self.register_email_entry = Entry(self, textvariable=self.register_email)
         self.register_email_entry.pack()
-        Label(self, text="").pack()
-        self.register_button = Button(self, text="Register", width=10, height=1, command=self.register_user)
+        Label(self, text="", bg="black").pack()
+        self.register_button = Button(self, text="Register",bg="black", fg="white", width=10, height=1, command=self.register_user)
         self.register_button.pack()
         self.error_message = StringVar()
-        Label(self, textvariable=self.error_message, fg="red", font=("calibri", 11)).pack()
+        Label(self, textvariable=self.error_message, bg="black",fg="red", font=("calibri", 11)).pack()
         self.register_username_entry.bind('<Return>', lambda e: self.register_password_entry.focus_set())
         self.register_password_entry.bind('<Return>', lambda e: self.register_button.invoke())
 

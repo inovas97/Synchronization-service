@@ -5,6 +5,11 @@ apt update && apt udgrade
 hostnamectl set-hostname flsyc-server
 nano /etc/hosts ==> add 212.71.250.55 flsync-server
 
+#create user and give him root permissions
+adduser novas
+adduser novas sudo
+usermod -G root novas
+
 #firewall
 apt install ufw
 ufw default allow outcoming
@@ -20,9 +25,10 @@ ufw status //to check all is ok
 #for mysql
 apt-get update
 apt-get install mysql-server
-mysql -u root -p #to open a mysql terminal
+#to open a mysql terminal
+mysql -u root -p 
 mysql> CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';
-mysql> GRANT ALL_PRIVILEGES ON *.* TO 'username'@'locahost';
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'username'@'locahost';
 mysql> quit 
 
 #for python
@@ -44,3 +50,71 @@ pip install -r req.txt
 
 #to install python-tk 
 apt-get install python-tk (restart after)
+
+#run flask
+export FLASK_APP=run.py
+flask run --host=0.0.0.0
+
+#set all the privates values in /etc/config.json 
+nano /etc/config.json
+{
+    "SECRET_KEY":"mpla mpla mpla"
+}
+#and i set in my config.py file this
+import os, json
+with open("/etc/config.json") as config_file:
+    config = json.load(config_file)
+#and get the secret key like this config.get("SECRET_KEY")
+
+#install nginx
+apt install nginx
+
+#isntall unicorn
+pip install unicorn
+
+#delete default /etc/sites-enabled/default and create mine  
+rm /etc/nginx/sites-enabled/default
+nano /etc/nginx/sites-enabled/flsync
+server {
+	listen 80;
+	server_name 212.71.250.55;
+	
+	location /static {
+		alias /home/novas/flask-server/flsync/static;
+	}
+
+	location / {
+		proxy_pass http://localhost:8000;
+		include /etc/nginx/proxy_params;
+		proxy_redirect off;
+	}
+}
+ufw allow http/tcp
+ufw delete 5000
+ufw enable
+systemctl restart nginx
+
+#at this time you need to can see your static files hostname/static
+#run gunicorm from venv
+gunicorn -w 3 run:FLASK_APP
+
+#install supervisor 
+sudo nano /etc/supervisor/conf.d/flsync.conf
+[program:flsync]
+directory=/home/novas/flask-server
+command=/home/novas/flask-server/venv/bin/gunicorn -w 3 run:app
+user=novas
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stderr_logfile=/var/log/flsync/flsync.err.log
+stdout_logfile=/var/log/flsync/flsync.out.log
+
+sudo touch /var/log/flsync/flsync.err.log
+sudo touch /var/log/flsync/flsync.out.log
+sudo supervisorctl reload
+
+#if i do changes restart
+sudo systemctl restart nginx
+
