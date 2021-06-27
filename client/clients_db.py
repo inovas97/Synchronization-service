@@ -27,7 +27,7 @@ def create_tables():
     try:
         conn = sqlite3.connect(db_file)
         conn.execute(""" CREATE TABLE IF NOT EXISTS Objects(
-                                        path text PRIMARY KEY,
+                                        path TEXT PRIMARY KEY,
                                         latest_update TEXT,
                                         type int
                                         );""")

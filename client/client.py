@@ -78,6 +78,12 @@ def receive_updates():
     global username
     global mac
     global users_pass
+    message = StringVar()
+    global home_frame
+    message = {}
+    mess = {}
+    message_label = {}
+    counter = 0
     s = socket.socket()
     sockets.append(s)
     s.connect(('212.71.250.55', 8002))
@@ -88,13 +94,25 @@ def receive_updates():
         try:
             new_message = s.recv(1024).decode("utf-8")
             new_update = json.loads(new_message)
+            counter+=1
+            
+            message[counter] = StringVar()
+            message_label[counter] = Label(home_frame, textvariable=message[counter],bg="black",fg="green", font=("calibri", 11))
+            message_label[counter].pack()
+    
             print("receive ", new_update)
             if new_update["action"] == 1:
                 path = new_update["path"]
+                mess[counter] = "i received created : "+new_update["path"]
+                message[counter].set(mess[counter])
                 os_path = devices_path(path)
                 if Path(os_path).exists() and ((Path(os_path).is_dir()) or
                                                (clients_db.select_object(path) is not None and clients_db.get_latest_update(
                                                    path) == new_update["latest_update"])):
+                    mess[counter] += " ignore!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     print("ignore message")
                     s.send(bytes("completed", "utf-8"))
                     continue
@@ -102,6 +120,10 @@ def receive_updates():
                 check_parents_exists(path)
                 if Path(os_path).exists() and clients_db.select_object(path) is not None and os.path.getmtime(
                         os_path) != clients_db.get_latest_update(path):
+                    mess[counter] += " conflict!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     print("conflict")
                     create_conflict(os_path)
                 if new_update["type"] == 1:
@@ -125,9 +147,15 @@ def receive_updates():
                     clients_db.update_object(path, new_update["latest_update"], 0)
             elif new_update["action"] == 2:
                 path = new_update["path"]
+                mess[counter] = "i received modified : "+new_update["path"]
+                message[counter].set(mess[counter])
                 os_path = devices_path(path)
                 check_parents_exists(path)
                 if Path(os_path).exists() and os.path.getmtime(os_path) != clients_db.get_latest_update(path):
+                    mess[counter] += " conflict!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     print("receive conflict")
                     create_conflict(os_path)
 
@@ -144,16 +172,27 @@ def receive_updates():
                     os.utime(os_path, (created_timestamp, new_update["latest_update"]))
                 clients_db.update_object(path, new_update["latest_update"], 0)
             elif new_update["action"] == 3:
+                mess[counter] = "i received renamed : "+new_update["old_path"]+" -> "+new_update["new_path"]
+                message[counter].set(mess[counter])
+                
                 db_old_path = new_update["old_path"]
                 db_new_path = new_update["new_path"]
                 latest_update = clients_db.get_latest_update(db_old_path)
                 old_path = devices_path(db_old_path)
                 new_path = devices_path(db_new_path)
                 if not Path(old_path).exists():
+                    mess[counter] += " done!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     print("ignore move because the object don't exists")
                     s.send(bytes("completed", "utf-8"))
                     continue
                 if Path(new_path).exists():
+                    mess[counter] += " done!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     print("ignore move because the new object exists")
                     s.send(bytes("completed", "utf-8"))
                     continue
@@ -163,15 +202,27 @@ def receive_updates():
                 clients_db.update_object(db_new_path, latest_update, 1)
             elif new_update["action"] == 4:
                 path = new_update["path"]
+                mess[counter] = "i received deleted : "+new_update["path"]
+                message[counter].set(mess[counter])
+                
+                path = new_update["path"]
                 os_path = devices_path(path)
                 if not Path(os_path).exists():
                     if clients_db.select_object(path) is not None:
                         clients_db.delete_object(path)
+                    mess[counter] += " done!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     s.send(bytes("completed", "utf-8"))
                     continue
                 if new_update["latest_update"] != clients_db.get_latest_update(path) and clients_db.get_latest_update(
                         path) == os.path.getmtime(os_path):
                     print("ignore delete because did it on other (older or younger) file")
+                    mess[counter] += " ignore!"
+                    message[counter].set(mess[counter])
+                    message_label[counter].after(5000, message_label[counter].destroy)
+                    
                     s.send(bytes("completed", "utf-8"))
                     continue
                 if Path(os_path).is_dir():
@@ -187,6 +238,10 @@ def receive_updates():
             elif new_update["action"] == 6:
                 print("i receive all the updates and deletes")
                 send_deletes_sem.release()
+            if new_update["action"] != 5 and new_update["action"] != 6:
+                mess[counter] += " done!"
+                message[counter].set(mess[counter])
+                message_label[counter].after(5000, message_label[counter].destroy)  
             s.send(bytes("completed", "utf-8"))
         except:
             print("receiver finished")
@@ -248,9 +303,25 @@ def update_server(s):
 
 def send_message(s, new_update):
     print("i send ", new_update)
+    message = StringVar()
+    global home_frame
+    mes = ""
+    if new_update["action"] == 1:
+        mes = "i send create :"+new_update["path"]
+    elif new_update["action"] == 2:
+        mes = "i send modified :"+new_update["path"]
+    elif new_update["action"] == 3:
+        mes = "i send renamed : "+new_update["old_path"]+" -> "+new_update["new_path"]
+    elif new_update["action"] == 4:
+        mes = "i send deleted : "+new_update["path"]
+    message.set(mes)
+    message_label = Label(home_frame, textvariable=message,bg="black",fg="green", font=("calibri", 11))
+    message_label.pack()
     s.send(bytes(json.dumps(new_update), "utf-8"))
     servers_response = s.recv(1024).decode("utf-8")
     if servers_response == "completed":
+        message.set(mes+" done!")
+        message_label.after(5000, message_label.destroy)
         print("i receive completed")
         if new_update["action"] == 1:
             if new_update["type"] == 1:
@@ -267,18 +338,28 @@ def send_message(s, new_update):
         send_all_bytes(new_update["path"], s, new_update["latest_update"])
         servers_response = s.recv(1024).decode("utf-8")
         if servers_response == "completed":
+            message.set(mes+" done!")
+            message_label.after(5000, message_label.destroy)
             print("bytes send completed")
             if new_update["action"] == 1:
                 clients_db.insert_object(new_update["path"], new_update["latest_update"], 1)
             elif new_update["action"] == 2:
                 clients_db.update_object(new_update["path"], new_update["latest_update"], 0)
     elif servers_response == "conflict":
+        message.set(mes+" config!")
+        message_label.after(5000, message_label.destroy)
         print("conflict files")
     elif servers_response == "ignore":
+        message.set(mes+" ignore!")
+        message_label.after(5000, message_label.destroy)
         print("ignore change")
     elif servers_response == "recreate":
+        message.set(mes+" recreate!")
+        message_label.after(5000, message_label.destroy)
         Path(devices_path(new_update["path"])).mkdir(True, True)
     elif servers_response == "send parent":
+        message.set(mes+"resend!")
+        message_label.after(5000, message_label.destroy)
         parent, child = new_update["path"].rsplit("/", 1)
         objects_update = os.path.getmtime(devices_path(parent))
         parent_update = {"action": 1, "path": parent, "type": 1, "latest_update": objects_update}
@@ -611,13 +692,17 @@ class Register(Frame):
 
 
 class Home(Frame):
+    
     def __init__(self, parent, controller):
+        global home_frame
         Frame.__init__(self, parent)
+        home_frame = self
+        self.configure(background='black')
         self.controller = controller
         self.message = StringVar()
-        Label(self, textvariable=self.message, fg="green", font=("calibri", 11)).pack()
+        Label(self, textvariable=self.message,bg="black", fg="green", font=("calibri", 11)).pack()
 
-        logout_button = Button(self, text="Logout", width=10, height=1,
+        logout_button = Button(self, text="Logout", width=10, height=1,bg="black", fg="white",
                                command=self.logout)
         logout_button.pack()
         home_thread = Thread(target=self.home)
@@ -670,6 +755,7 @@ class Home(Frame):
 if __name__ == "__main__":
     username = None 
     global users_pass
+    global home_frame
 
     mac = str(get_mac())
     actions_queue = queue.Queue()
