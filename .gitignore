@@ -1,8 +1,7 @@
 flask-server/venv
-flsync/client_venv
-flsync/novas
-flsync/novas97
-flsync/novas.db
-test
+
 test2
 testing
+novas
+test
+#flsync/client_venv

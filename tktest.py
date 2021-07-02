@@ -1,8 +1,6 @@
 import time
 from tkinter import *
     
-
-
     
 top = Tk()  
 label =  Label(top, text = "ok")
@@ -31,6 +29,5 @@ e1 = Entry(top,width = 20).place(x = 100, y = 50)
   
 e2 = Entry(top, width = 20).place(x = 100, y = 90)  
   
-
   
 top.mainloop()  

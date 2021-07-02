@@ -22,6 +22,11 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+
+@app.route('/download_exe', methods=['GET', 'POST'])
+def download_exe():
+    return send_from_directory(directory="/home/novas", filename="flsync.exe")
+
 @app.route('/home')
 @app.route('/home?<path:folder>', methods=["GET", "POST"])
 def home(folder):
@@ -168,7 +173,7 @@ def logout():
     return redirect('login')
 
 def send_reset_email(token, email):
-    #try :
+    try :
         msg = Message('Password Reset Request',
                     sender='tocasheri@gmail.com',
                     recipients=[email])
@@ -178,8 +183,8 @@ If you did not make this request then simply ignore this email and no changes wi
         '''
         mail.send(msg)
         return "ok"
-    #except:
-    #    return False
+    except:
+        return False
 
 @app.route('/reset_request',  methods=['GET', 'POST'])
 def reset_request():

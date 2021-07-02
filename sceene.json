@@ -1,0 +1,44 @@
+client:8001->{"action": "l", "username": "novas", "password": "e10adc3949ba59abbe56e057f20f883e", "mac": "58165359152104"}
+
+server:8001->"RL0C0VX3TO1JZ3Y5"
+
+client:8002->{"users_pass": "RL0C0VX3TO1JZ3Y5", "username": "novas", "mac": "58165359152104"}
+
+client:8003->{"users_pass": "RL0C0VX3TO1JZ3Y5", "username": "novas", "mac": "58165359152104"}
+
+server:8003->"completed"
+
+server:8002->{"action":5}
+
+client:8002->"completed"
+
+client:8003->{"action": 1, "path": "novas/documents/test.py", "type": 0,"latest_update": 1615995275.0, "size": 361}
+server:8003->"send bytes"
+client:8003->b"nvlfnvsl..." 
+server:8003->"ok"                                                    
+server:8003->"completed"
+client:8003->{"action": 5}
+server:8003->"completed"
+
+
+
+
+                                        
+server:8002->{"action": 1, "path": "novas/ticket.pdf", "type": 0,  "latest_update": 1620129803.7560327, "size": 263162}
+client:8002->"send bytes"
+server:8002->b"nvlfncsfvsfvsvsvdsv..."
+client:8002->"ok"
+server:8002->b"nvlfnvsvdevavdvssv..."
+client:8002->"ok"
+………………………………………………………………………………………………………………………………
+server:8002->b"nvlfdevavdvssv..."
+client:8002->"ok"
+client:8002->"completed"
+server:8002->{"action": 6 }
+Client:8002->"completed"                                                                  
+
+client:8003->{"action": 4, "path": "novas/documents/Xerox Scan.PDF","latest_update": 1620134178.6272762}
+server:8003->"completed"
+
+
+

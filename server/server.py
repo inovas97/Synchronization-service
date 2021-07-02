@@ -30,7 +30,7 @@ def authentication_user(client_socket):
                     os.chmod(username, 0o777)
                     servers_db.insert_user(db, username, password, email)
                     if mac != 1:
-                        conn_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=524))
+                        conn_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
                         connections_pass[username, mac] = conn_pass
                         client_socket.send(bytes(conn_pass, "utf-8"))
                     else:
@@ -45,7 +45,7 @@ def authentication_user(client_socket):
                     client_socket.send(bytes("password not match", "utf-8"))
                 else:
                     if mac != 1:
-                        conn_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=524))
+                        conn_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
                         connections_pass[username, mac] = conn_pass
                         client_socket.send(bytes(conn_pass, "utf-8"))
                     else:
