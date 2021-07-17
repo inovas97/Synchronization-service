@@ -5,5 +5,5 @@ class Config:
     MAIL_PORT = 465
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
-    MAIL_USERNAME = 'tocasheri@gmail.com'
-    MAIL_PASSWORD = 'axcwfxxpalkrtgan'
+    MAIL_USERNAME = 'yoursemail@gmail.com'
+    MAIL_PASSWORD = 'password'
