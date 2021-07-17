@@ -4,8 +4,8 @@ import mysql.connector
 def get_connect():
     db = mysql.connector.connect(
         host="localhost",
-        user="novas",
-        password="novas6980263685",
+        user="user",
+        password="password",
     )
     dbcursor = db.cursor()
     dbcursor.execute("CREATE DATABASE IF NOT EXISTS novboxdb")
