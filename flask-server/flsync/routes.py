@@ -88,7 +88,6 @@ def home(folder):
 @app.route('/download/<path:filename>')
 def download(filename):
     try:
-        #copyfile("/novbox/"+filename, secure_filename("/novbox/"+filename))
         return send_file(servers_folder+"/"+filename, as_attachment=True)
     except Exception as e:
         print(e)
@@ -100,7 +99,7 @@ def zipped_data(folder):
     #folder = folder.replace("$", "/")
     filename = folder + ".zip"
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(os.path.join("/novbox", folder)):
+        for root, dirs, files in os.walk(os.path.join(servers_folder, folder)):
             for file in files:
                 zipf.write(os.path.join(servers_folder, folder, file))
     memory_file.seek(0)
