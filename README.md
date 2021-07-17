@@ -1,4 +1,2 @@
-# thesis
-thesis project 
-A cloud based synchronization service
+# A cloud based synchronization service
 Include server-client model and web interface
