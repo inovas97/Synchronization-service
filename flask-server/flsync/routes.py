@@ -174,7 +174,7 @@ def logout():
 def send_reset_email(token, email):
     try :
         msg = Message('Password Reset Request',
-                    sender='tocasheri@gmail.com',
+                    sender='senderemail@gmail.com',
                     recipients=[email])
         msg.body = f'''To reset your password, visit the following link:
 {url_for('reset_password', token=token, _external=True)}
@@ -189,9 +189,7 @@ If you did not make this request then simply ignore this email and no changes wi
 def reset_request():
     form = ResetRequestForm()
     if form.validate_on_submit():
-        #username = session["username"]
         username = form.username.data
-        #email = "novasgiannis97@gmail.com"
         db = servers_db.get_connect()
         email = servers_db.get_email(db, username)
         db.close()
@@ -200,7 +198,6 @@ def reset_request():
             return render_template('reset_request.html', form=form)
         token = jwt.encode({"user": username, "exp": datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},
                              app.config['SECRET_KEY'])
-        #return url_for('reset_password', token=token, _external=True)
         if send_reset_email(token, email):
             flash('An email has been sent with instructions to reset your password.', 'info')
         else:
