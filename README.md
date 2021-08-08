@@ -1,2 +1,2 @@
 # A cloud based synchronization service
-Include server-client model and web interface
+Include server-client model(Python) and web interface (Flask) 
